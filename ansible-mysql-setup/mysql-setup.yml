@@ -1,0 +1,54 @@
+# mysql-setup.yml
+---
+- name: Install and Configure MySQL on Remote Host
+  hosts: dbservers
+  become: yes
+  vars:
+    mysql_root_password: StrongRootPass123!
+    mysql_user: myuser
+    mysql_user_password: MyUserPass123!
+    mysql_database: mydb
+
+  tasks:
+    - name: Install required Python package for MySQL
+      apt:
+        name: python3-pymysql
+        state: present
+
+    - name: Install MySQL Server
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes
+
+    - name: Ensure MySQL is running and enabled
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Set root password for MySQL
+      mysql_user:
+        name: root
+        host: localhost
+        password: "{{ mysql_root_password }}"
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+        check_implicit_admin: true
+        state: present
+
+    - name: Create MySQL Database
+      mysql_db:
+        name: "{{ mysql_database }}"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Create MySQL User and Grant Privileges
+      mysql_user:
+        name: "{{ mysql_user }}"
+        password: "{{ mysql_user_password }}"
+        priv: "{{ mysql_database }}.*:ALL"
+        host: "%"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
